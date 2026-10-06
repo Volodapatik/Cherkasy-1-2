@@ -4,10 +4,14 @@
     android:height="108dp"
     android:viewportWidth="108"
     android:viewportHeight="108">
+
+    <!-- Green circle background -->
+    <path
+        android:fillColor="#1B5E20"
+        android:pathData="M54,54m-48,0a48,48 0,1 1,96 0a48,48 0,1 1,-96 0" />
+
+    <!-- Lightning bolt -->
     <path
         android:fillColor="#FFFFFF"
-        android:pathData="M54,30c-13.2,0 -24,10.8 -24,24s10.8,24 24,24 24,-10.8 24,-24 -10.8,-24 -24,-24zM54,70c-8.8,0 -16,-7.2 -16,-16s7.2,-16 16,-16 16,7.2 16,16 -7.2,16 -16,16z"/>
-    <path
-        android:fillColor="#FFFFFF"
-        android:pathData="M54,42c-6.6,0 -12,5.4 -12,12h8c0,-2.2 1.8,-4 4,-4s4,1.8 4,4h8c0,-6.6 -5.4,-12 -12,-12z"/>
+        android:pathData="M58,22 L38,58 L50,58 L46,86 L70,46 L56,46 Z" />
 </vector>
