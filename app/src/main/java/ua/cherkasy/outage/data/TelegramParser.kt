@@ -17,7 +17,6 @@ data class ParsedSchedule(
 object TelegramParser {
 
     private const val CHANNEL_URL = "https://t.me/s/pat_cherkasyoblenergo"
-    private const val TARGET_QUEUE = "1.2"
 
     private val client = OkHttpClient.Builder()
         .connectTimeout(20, TimeUnit.SECONDS)
@@ -29,8 +28,10 @@ object TelegramParser {
         "погодинних", "знеструмлення", "відсутності електропостачання"
     )
 
+    // Тільки рядок 1.2: "1.2 15:00 - 17:00" або кілька інтервалів через кому
+    // Зупиняється перед наступною чергою (2.1, 3.1 тощо)
     private val queueLinePattern = Pattern.compile(
-        """(?i)1\.2\s+([\d:.\-–\s,]+)""",
+        """(?i)(?:^|\n|\s)1\.2\s+((?:\d{1,2}:\d{2}\s*[-–]\s*\d{1,2}:\d{2})(?:\s*,\s*\d{1,2}:\d{2}\s*[-–]\s*\d{1,2}:\d{2})*)""",
         Pattern.MULTILINE
     )
 
