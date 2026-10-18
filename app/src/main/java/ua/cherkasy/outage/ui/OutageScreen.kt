@@ -1,15 +1,10 @@
 package ua.cherkasy.outage.ui
 
-import android.content.ClipData
-import android.content.ClipboardManager
-import android.content.Context
-import android.widget.Toast
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -19,14 +14,11 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.google.firebase.messaging.FirebaseMessaging
 import kotlinx.coroutines.launch
 import ua.cherkasy.outage.data.OutageEntity
 import ua.cherkasy.outage.data.OutageRepository
-import ua.cherkasy.outage.fcm.FcmTokenStore
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -39,17 +31,6 @@ fun OutageScreen() {
     val scope = rememberCoroutineScope()
     var isRefreshing by remember { mutableStateOf(false) }
     var lastError by remember { mutableStateOf<String?>(null) }
-    var fcmToken by remember { mutableStateOf(FcmTokenStore.get(context) ?: "") }
-
-    LaunchedEffect(Unit) {
-        FirebaseMessaging.getInstance().token.addOnCompleteListener { task ->
-            if (task.isSuccessful) {
-                val t = task.result ?: return@addOnCompleteListener
-                FcmTokenStore.save(context, t)
-                fcmToken = t
-            }
-        }
-    }
 
     val latest = schedules.firstOrNull()
 
@@ -159,47 +140,6 @@ fun OutageScreen() {
             if (lastError != null) {
                 Spacer(modifier = Modifier.height(8.dp))
                 Text(text = lastError!!, color = Color.Red, fontSize = 13.sp)
-            }
-
-            // FCM token block (for Termux setup)
-            Spacer(modifier = Modifier.height(12.dp))
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(12.dp)
-            ) {
-                Column(modifier = Modifier.padding(12.dp)) {
-                    Text(
-                        text = "FCM токен (для Termux)",
-                        fontSize = 13.sp,
-                        fontWeight = FontWeight.SemiBold
-                    )
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Text(
-                            text = if (fcmToken.isBlank()) "Очікуємо токен…" else fcmToken,
-                            fontSize = 11.sp,
-                            maxLines = 2,
-                            overflow = TextOverflow.Ellipsis,
-                            modifier = Modifier.weight(1f),
-                            color = Color.Gray
-                        )
-                        IconButton(
-                            onClick = {
-                                if (fcmToken.isNotBlank()) {
-                                    val cm = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-                                    cm.setPrimaryClip(ClipData.newPlainText("fcm", fcmToken))
-                                    Toast.makeText(context, "Токен скопійовано", Toast.LENGTH_SHORT).show()
-                                }
-                            },
-                            enabled = fcmToken.isNotBlank()
-                        ) {
-                            Icon(Icons.Default.ContentCopy, contentDescription = "Копіювати")
-                        }
-                    }
-                }
             }
 
             Spacer(modifier = Modifier.height(20.dp))
