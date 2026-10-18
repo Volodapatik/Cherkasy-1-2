@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "451258617518",
+    "project_id": "cherkasyoutage-1b0d3",
+    "storage_bucket": "cherkasyoutage-1b0d3.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:451258617518:android:8a06e5c7358ae7f7b4673f",
+        "android_client_info": {
+          "package_name": "ua.cherkasy.outage"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAADzuOJWJo71XTlRmP2wmtEH0WnW9s2xI"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
