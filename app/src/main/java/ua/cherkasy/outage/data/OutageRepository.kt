@@ -11,6 +11,10 @@ class OutageRepository(context: Context) {
 
     suspend fun getLatest(): OutageEntity? = dao.getLatest()
 
+    suspend fun insertFromFcm(entity: OutageEntity) {
+        dao.insert(entity)
+    }
+
     suspend fun checkForNewSchedules(): List<OutageEntity> {
         val parsed = try {
             TelegramParser.fetchLatestSchedules()
