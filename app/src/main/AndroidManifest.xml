@@ -33,5 +33,17 @@
             </intent-filter>
         </receiver>
 
+        <service
+            android:name=".fcm.OutageFirebaseMessagingService"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="com.google.firebase.MESSAGING_EVENT" />
+            </intent-filter>
+        </service>
+
+        <meta-data
+            android:name="com.google.firebase.messaging.default_notification_channel_id"
+            android:value="@string/notification_channel_id" />
+
     </application>
 </manifest>
