@@ -4,4 +4,5 @@
     <string name="notification_channel_id">outage_channel</string>
     <string name="notification_channel_name">Графіки відключень</string>
     <string name="notification_title">Новий графік для 1.2</string>
+    <string name="fcm_default_title">Новий графік для черги 1.2</string>
 </resources>
