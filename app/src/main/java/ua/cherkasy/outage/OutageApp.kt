@@ -5,20 +5,17 @@ import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.os.Build
 import android.util.Log
-import androidx.work.ExistingPeriodicWorkPolicy
-import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
 import com.google.firebase.messaging.FirebaseMessaging
 import ua.cherkasy.outage.fcm.FcmTokenStore
-import ua.cherkasy.outage.worker.OutageCheckWorker
-import java.util.concurrent.TimeUnit
 
 class OutageApp : Application() {
 
     override fun onCreate() {
         super.onCreate()
         createNotificationChannel()
-        schedulePeriodicCheck()
+        // Local background parser/pushes disabled — Termux FCM server handles alerts.
+        WorkManager.getInstance(this).cancelUniqueWork("outage_check")
         fetchFcmToken()
     }
 
@@ -35,18 +32,6 @@ class OutageApp : Application() {
             val manager = getSystemService(NotificationManager::class.java)
             manager.createNotificationChannel(channel)
         }
-    }
-
-    private fun schedulePeriodicCheck() {
-        val request = PeriodicWorkRequestBuilder<OutageCheckWorker>(
-            20, TimeUnit.MINUTES
-        ).build()
-
-        WorkManager.getInstance(this).enqueueUniquePeriodicWork(
-            "outage_check",
-            ExistingPeriodicWorkPolicy.KEEP,
-            request
-        )
     }
 
     private fun fetchFcmToken() {
