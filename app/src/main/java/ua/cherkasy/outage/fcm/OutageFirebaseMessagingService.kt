@@ -7,13 +7,13 @@ import android.util.Log
 import androidx.core.app.NotificationCompat
 import com.google.firebase.messaging.FirebaseMessagingService
 import com.google.firebase.messaging.RemoteMessage
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import ua.cherkasy.outage.MainActivity
 import ua.cherkasy.outage.R
 import ua.cherkasy.outage.data.OutageEntity
 import ua.cherkasy.outage.data.OutageRepository
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
 
 class OutageFirebaseMessagingService : FirebaseMessagingService() {
 
@@ -35,7 +35,6 @@ class OutageFirebaseMessagingService : FirebaseMessagingService() {
             ?: data["timesText"]
             ?: "Новий графік для черги 1.2"
 
-        // Optional: save schedule from data payload
         val dateText = data["dateText"]
         val timesText = data["timesText"]
         val messageId = data["messageId"] ?: data["msgId"]
@@ -43,12 +42,13 @@ class OutageFirebaseMessagingService : FirebaseMessagingService() {
             CoroutineScope(Dispatchers.IO).launch {
                 try {
                     val repo = OutageRepository(applicationContext)
-                    val id = messageId ?: "fcm_${dateText}_${timesText}".hashCode().toString()
+                    val id = messageId ?: ("fcm_" + dateText + "_" + timesText).hashCode().toString()
                     repo.insertFromFcm(
                         OutageEntity(
                             messageId = id,
                             dateText = dateText,
                             timesText = timesText,
+                            fullMessage = body,
                             publishedAt = System.currentTimeMillis()
                         )
                     )
@@ -86,7 +86,7 @@ class OutageFirebaseMessagingService : FirebaseMessagingService() {
             .build()
 
         val manager = getSystemService(NotificationManager::class.java)
-        manager.notify(System.currentTimeMillis().toInt(), notification)
+        manager.notify((System.currentTimeMillis() % Int.MAX_VALUE).toInt(), notification)
     }
 
     companion object {
