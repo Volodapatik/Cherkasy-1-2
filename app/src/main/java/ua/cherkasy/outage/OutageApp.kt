@@ -4,9 +4,12 @@ import android.app.Application
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.os.Build
+import android.util.Log
 import androidx.work.ExistingPeriodicWorkPolicy
 import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
+import com.google.firebase.messaging.FirebaseMessaging
+import ua.cherkasy.outage.fcm.FcmTokenStore
 import ua.cherkasy.outage.worker.OutageCheckWorker
 import java.util.concurrent.TimeUnit
 
@@ -16,6 +19,7 @@ class OutageApp : Application() {
         super.onCreate()
         createNotificationChannel()
         schedulePeriodicCheck()
+        fetchFcmToken()
     }
 
     private fun createNotificationChannel() {
@@ -43,5 +47,17 @@ class OutageApp : Application() {
             ExistingPeriodicWorkPolicy.KEEP,
             request
         )
+    }
+
+    private fun fetchFcmToken() {
+        FirebaseMessaging.getInstance().token.addOnCompleteListener { task ->
+            if (!task.isSuccessful) {
+                Log.w("OutageApp", "FCM token failed", task.exception)
+                return@addOnCompleteListener
+            }
+            val token = task.result ?: return@addOnCompleteListener
+            FcmTokenStore.save(this, token)
+            Log.d("OutageApp", "FCM token ready (len=${token.length})")
+        }
     }
 }
