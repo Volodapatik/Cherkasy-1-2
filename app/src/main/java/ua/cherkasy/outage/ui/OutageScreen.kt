@@ -16,7 +16,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import ua.cherkasy.outage.data.OutageEntity
 import ua.cherkasy.outage.data.OutageRepository
 import java.text.SimpleDateFormat
@@ -39,7 +41,9 @@ fun OutageScreen() {
             lastError = null
             statusHint = null
             try {
-                val added = repo.checkForNewSchedules()
+                val added = withContext(Dispatchers.IO) {
+                    repo.checkForNewSchedules()
+                }
                 statusHint = if (added > 0) {
                     "Додано нових: $added"
                 } else {
@@ -52,7 +56,6 @@ fun OutageScreen() {
         }
     }
 
-    // Автоматично при відкритті додатка
     LaunchedEffect(Unit) {
         refresh()
     }
