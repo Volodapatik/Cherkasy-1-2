@@ -1,5 +1,10 @@
 package ua.cherkasy.outage.ui
 
+import android.content.ClipData
+import android.content.ClipboardManager
+import android.content.Context
+import android.widget.Toast
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -11,16 +16,19 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.google.firebase.messaging.FirebaseMessaging
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import ua.cherkasy.outage.data.OutageEntity
 import ua.cherkasy.outage.data.OutageRepository
+import ua.cherkasy.outage.fcm.FcmTokenStore
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -56,6 +64,20 @@ fun OutageScreen() {
         }
     }
 
+    fun copyToken() {
+        FirebaseMessaging.getInstance().token.addOnCompleteListener { task ->
+            val token = if (task.isSuccessful) task.result else FcmTokenStore.get(context)
+            if (token.isNullOrBlank()) {
+                Toast.makeText(context, "Токен ще не готовий", Toast.LENGTH_SHORT).show()
+                return@addOnCompleteListener
+            }
+            FcmTokenStore.save(context, token)
+            val cm = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+            cm.setPrimaryClip(ClipData.newPlainText("fcm", token))
+            Toast.makeText(context, "FCM токен скопійовано", Toast.LENGTH_SHORT).show()
+        }
+    }
+
     LaunchedEffect(Unit) {
         refresh()
     }
@@ -68,7 +90,12 @@ fun OutageScreen() {
                 title = {
                     Text(
                         "Черга 1.2 — Черкасиобленерго",
-                        fontWeight = FontWeight.Bold
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier.pointerInput(Unit) {
+                            detectTapGestures(
+                                onLongPress = { copyToken() }
+                            )
+                        }
                     )
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
