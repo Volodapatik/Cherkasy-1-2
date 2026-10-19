@@ -14,9 +14,9 @@ class OutageApp : Application() {
     override fun onCreate() {
         super.onCreate()
         createNotificationChannel()
-        // Local background parser/pushes disabled — Termux FCM server handles alerts.
         WorkManager.getInstance(this).cancelUniqueWork("outage_check")
         fetchFcmToken()
+        subscribeToTopic()
     }
 
     private fun createNotificationChannel() {
@@ -37,12 +37,29 @@ class OutageApp : Application() {
     private fun fetchFcmToken() {
         FirebaseMessaging.getInstance().token.addOnCompleteListener { task ->
             if (!task.isSuccessful) {
-                Log.w("OutageApp", "FCM token failed", task.exception)
+                Log.w(TAG, "FCM token failed", task.exception)
                 return@addOnCompleteListener
             }
             val token = task.result ?: return@addOnCompleteListener
             FcmTokenStore.save(this, token)
-            Log.d("OutageApp", "FCM token ready (len=${token.length})")
+            Log.d(TAG, "FCM token ready (len=${token.length})")
         }
+    }
+
+    private fun subscribeToTopic() {
+        FirebaseMessaging.getInstance()
+            .subscribeToTopic(TOPIC_1_2)
+            .addOnCompleteListener { task ->
+                if (task.isSuccessful) {
+                    Log.d(TAG, "Subscribed to $TOPIC_1_2")
+                } else {
+                    Log.w(TAG, "Topic subscribe failed", task.exception)
+                }
+            }
+    }
+
+    companion object {
+        private const val TAG = "OutageApp"
+        const val TOPIC_1_2 = "outage_1_2"
     }
 }
