@@ -19,21 +19,19 @@ object TelegramParser {
     private const val CHANNEL_URL = "https://t.me/s/pat_cherkasyoblenergo"
 
     private val client = OkHttpClient.Builder()
-        .connectTimeout(20, TimeUnit.SECONDS)
-        .readTimeout(20, TimeUnit.SECONDS)
+        .connectTimeout(25, TimeUnit.SECONDS)
+        .readTimeout(25, TimeUnit.SECONDS)
+        .followRedirects(true)
         .build()
 
     private val scheduleKeywords = listOf(
-        "графік", "ГПВ", "відключень", "години відсутності",
-        "погодинних", "знеструмлення", "відсутності електропостачання"
+        "графік", "ГПВ", "гпв", "відключень", "відключення",
+        "години відсутності", "погодинн", "знеструмлення",
+        "електропостачання", "обмеження"
     )
 
-    // 1.2 з одним або кількома інтервалами:
-    // "1.2 15:00 - 17:00"
-    // "1.2 15:00 - 17:00, 22:00 - 24:00"
-    // Зупиняється перед наступною чергою (2.1, 3.1 ...)
     private val queueLinePattern = Pattern.compile(
-        """(?i)(?:^|[\n\r]|\s)1\.2\s+((?:\d{1,2}:\d{2}\s*[-–—]\s*\d{1,2}:\d{2})(?:\s*,\s*\d{1,2}:\d{2}\s*[-–—]\s*\d{1,2}:\d{2})*)""",
+        """(?i)(?:^|[\n\r\s])1\.2\s+((?:\d{1,2}:\d{2}\s*[-–—]\s*\d{1,2}:\d{2})(?:\s*,\s*\d{1,2}:\d{2}\s*[-–—]\s*\d{1,2}:\d{2})*)""",
         Pattern.MULTILINE
     )
 
@@ -46,19 +44,31 @@ object TelegramParser {
     fun fetchLatestSchedules(): List<ParsedSchedule> {
         val request = Request.Builder()
             .url(CHANNEL_URL)
-            .header("User-Agent", "Mozilla/5.0 (Linux; Android 13) AppleWebKit/537.36")
+            .header("User-Agent", "Mozilla/5.0 (Linux; Android 13; Mobile) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36")
+            .header("Accept", "text/html,application/xhtml+xml")
+            .header("Accept-Language", "uk-UA,uk;q=0.9,en;q=0.8")
             .build()
 
         client.newCall(request).execute().use { response ->
-            if (!response.isSuccessful) return emptyList()
-            val html = response.body?.string() ?: return emptyList()
+            if (!response.isSuccessful) {
+                throw IllegalStateException("HTTP ${response.code} при завантаженні каналу")
+            }
+            val html = response.body?.string()
+                ?: throw IllegalStateException("Порожня відповідь каналу")
+            if (html.length < 500) {
+                throw IllegalStateException("Сторінка каналу занадто коротка")
+            }
             return parseHtml(html)
         }
     }
 
     private fun parseHtml(html: String): List<ParsedSchedule> {
         val doc = Jsoup.parse(html)
-        val messages = doc.select("div.tgme_widget_message")
+        var messages = doc.select("div.tgme_widget_message")
+        if (messages.isEmpty()) {
+            messages = doc.select("[data-post]")
+        }
+
         val result = mutableListOf<ParsedSchedule>()
 
         for (msg in messages) {
@@ -67,7 +77,12 @@ object TelegramParser {
 
             val messageId = dataPost.substringAfterLast("/")
             val textEl = msg.selectFirst("div.tgme_widget_message_text")
-            val fullText = textEl?.text()?.trim() ?: continue
+                ?: msg.selectFirst(".js-message_text")
+            var fullText = textEl?.text()?.trim().orEmpty()
+            if (fullText.isBlank()) {
+                fullText = msg.text().trim()
+            }
+            if (fullText.isBlank()) continue
 
             val isSchedule = scheduleKeywords.any { fullText.contains(it, ignoreCase = true) }
             if (!isSchedule) continue
@@ -81,7 +96,6 @@ object TelegramParser {
                 .replace('—', '-')
                 .replace(Regex("\\s+"), " ")
                 .trim()
-
             if (timesText.isBlank()) continue
 
             var dateText = "невідома дата"
@@ -98,7 +112,7 @@ object TelegramParser {
             val publishedAt = try {
                 java.time.Instant.parse(datetime).toEpochMilli()
             } catch (e: Exception) {
-                System.currentTimeMillis()
+                messageId.toLongOrNull()?.let { it * 1000L } ?: System.currentTimeMillis()
             }
 
             result.add(
@@ -112,6 +126,9 @@ object TelegramParser {
             )
         }
 
-        return result.sortedByDescending { it.publishedAt }
+        return result.sortedWith(
+            compareByDescending<ParsedSchedule> { it.messageId.toLongOrNull() ?: 0L }
+                .thenByDescending { it.publishedAt }
+        )
     }
 }
