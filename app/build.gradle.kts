@@ -13,8 +13,8 @@ android {
         applicationId = "ua.cherkasy.outage"
         minSdk = 26
         targetSdk = 34
-        versionCode = 3
-        versionName = "1.2.0"
+        versionCode = 4
+        versionName = "1.2.1"
     }
 
     buildTypes {
@@ -64,22 +64,16 @@ dependencies {
     implementation("androidx.compose.material3:material3")
     implementation("androidx.compose.material:material-icons-extended")
 
-    // Network + parsing
     implementation("com.squareup.okhttp3:okhttp:4.12.0")
     implementation("org.jsoup:jsoup:1.17.2")
 
-    // Room
     implementation("androidx.room:room-runtime:2.6.1")
     implementation("androidx.room:room-ktx:2.6.1")
     ksp("androidx.room:room-compiler:2.6.1")
 
-    // WorkManager
     implementation("androidx.work:work-runtime-ktx:2.9.0")
-
-    // DataStore
     implementation("androidx.datastore:datastore-preferences:1.1.1")
 
-    // Firebase Cloud Messaging
     implementation(platform("com.google.firebase:firebase-bom:33.5.1"))
     implementation("com.google.firebase:firebase-messaging-ktx")
 
