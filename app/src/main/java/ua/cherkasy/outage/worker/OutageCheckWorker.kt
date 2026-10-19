@@ -5,10 +5,7 @@ import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
 import ua.cherkasy.outage.data.OutageRepository
 
-/**
- * Legacy local checker. Not scheduled anymore (Termux FCM sends pushes).
- * Kept without notifications in case it is triggered manually.
- */
+/** Legacy local checker (not scheduled). No notifications. */
 class OutageCheckWorker(
     context: Context,
     params: WorkerParameters
@@ -16,8 +13,7 @@ class OutageCheckWorker(
 
     override suspend fun doWork(): Result {
         return try {
-            val repo = OutageRepository(applicationContext)
-            repo.checkForNewSchedules()
+            OutageRepository(applicationContext).checkForNewSchedules()
             Result.success()
         } catch (e: Exception) {
             e.printStackTrace()
