@@ -31,6 +31,31 @@ fun OutageScreen() {
     val scope = rememberCoroutineScope()
     var isRefreshing by remember { mutableStateOf(false) }
     var lastError by remember { mutableStateOf<String?>(null) }
+    var statusHint by remember { mutableStateOf<String?>(null) }
+
+    fun refresh() {
+        scope.launch {
+            isRefreshing = true
+            lastError = null
+            statusHint = null
+            try {
+                val added = repo.checkForNewSchedules()
+                statusHint = if (added > 0) {
+                    "Додано нових: $added"
+                } else {
+                    "Перевірено. Нових записів немає (або вже збережено)"
+                }
+            } catch (e: Exception) {
+                lastError = "Помилка: ${e.message ?: e.javaClass.simpleName}"
+            }
+            isRefreshing = false
+        }
+    }
+
+    // Автоматично при відкритті додатка
+    LaunchedEffect(Unit) {
+        refresh()
+    }
 
     val latest = schedules.firstOrNull()
 
@@ -49,18 +74,8 @@ fun OutageScreen() {
                 ),
                 actions = {
                     IconButton(
-                        onClick = {
-                            scope.launch {
-                                isRefreshing = true
-                                lastError = null
-                                try {
-                                    repo.checkForNewSchedules()
-                                } catch (e: Exception) {
-                                    lastError = "Помилка оновлення: ${e.message}"
-                                }
-                                isRefreshing = false
-                            }
-                        }
+                        onClick = { refresh() },
+                        enabled = !isRefreshing
                     ) {
                         Icon(
                             Icons.Default.Refresh,
@@ -123,7 +138,11 @@ fun OutageScreen() {
                         )
                     } else {
                         Text(
-                            text = "Ще немає даних.\nНатисніть «Оновити»",
+                            text = if (isRefreshing) {
+                                "Завантаження графіка…"
+                            } else {
+                                "Ще немає даних.\nТягнемо з каналу автоматично…"
+                            },
                             fontSize = 16.sp,
                             textAlign = TextAlign.Center,
                             color = Color.Gray
@@ -140,6 +159,9 @@ fun OutageScreen() {
             if (lastError != null) {
                 Spacer(modifier = Modifier.height(8.dp))
                 Text(text = lastError!!, color = Color.Red, fontSize = 13.sp)
+            } else if (statusHint != null) {
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(text = statusHint!!, color = Color.Gray, fontSize = 12.sp)
             }
 
             Spacer(modifier = Modifier.height(20.dp))
@@ -152,7 +174,7 @@ fun OutageScreen() {
 
             if (schedules.isEmpty()) {
                 Text(
-                    text = "Історія порожня. Очікуємо перший графік…",
+                    text = "Історія порожня. Якщо є інтернет — зачекайте або натисніть оновити.",
                     color = Color.Gray,
                     modifier = Modifier.padding(top = 16.dp)
                 )
