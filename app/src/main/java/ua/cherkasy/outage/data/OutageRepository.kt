@@ -15,16 +15,19 @@ class OutageRepository(context: Context) {
         dao.insert(entity)
     }
 
-    suspend fun checkForNewSchedules(): List<OutageEntity> {
-        val parsed = try {
-            TelegramParser.fetchLatestSchedules()
-        } catch (e: Exception) {
-            e.printStackTrace()
-            return emptyList()
+    /**
+     * @return number of newly inserted schedules
+     * @throws Exception on network/parse failure so UI can show it
+     */
+    suspend fun checkForNewSchedules(): Int {
+        val parsed = TelegramParser.fetchLatestSchedules()
+        if (parsed.isEmpty()) {
+            // Still success HTTP-wise but nothing matched queue 1.2
+            return 0
         }
 
         val existingIds = dao.getAllMessageIds().toSet()
-        val newOnes = mutableListOf<OutageEntity>()
+        var insertedCount = 0
 
         for (p in parsed) {
             if (p.messageId !in existingIds) {
@@ -36,12 +39,11 @@ class OutageRepository(context: Context) {
                     publishedAt = p.publishedAt
                 )
                 val inserted = dao.insert(entity)
-                if (inserted != -1L) {
-                    newOnes.add(entity)
-                }
+                if (inserted != -1L) insertedCount++
             }
         }
 
-        return newOnes
+        // If everything already in DB, ensure latest is still visible (DB not empty)
+        return insertedCount
     }
 }
