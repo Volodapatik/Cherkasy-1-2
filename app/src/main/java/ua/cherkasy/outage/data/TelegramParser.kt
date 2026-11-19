@@ -30,9 +30,20 @@ object TelegramParser {
         "електропостачання", "обмеження"
     )
 
+    // 1.2 з одним або кількома інтервалами
     private val queueLinePattern = Pattern.compile(
         """(?i)(?:^|[\n\r\s])1\.2\s+((?:\d{1,2}:\d{2}\s*[-–—]\s*\d{1,2}:\d{2})(?:\s*,\s*\d{1,2}:\d{2}\s*[-–—]\s*\d{1,2}:\d{2})*)""",
         Pattern.MULTILINE
+    )
+
+    /** Маркери блоку тимчасових індивідуальних графіків (Умань, Жашків тощо). */
+    private val individualSectionPatterns = listOf(
+        Pattern.compile("(?i)тимчасов[іиї]\s+індивідуальн"),
+        Pattern.compile("(?i)індивідуальн[іиї]\s+графік"),
+        Pattern.compile("(?i)жашківськ"),
+        Pattern.compile("(?i)уманськ[іиї]\s+енергетичн"),
+        Pattern.compile("(?i)монастирищенськ"),
+        Pattern.compile("(?i)христинівськ")
     )
 
     private val datePatterns = listOf(
@@ -62,6 +73,47 @@ object TelegramParser {
         }
     }
 
+    /**
+     * Якщо в пості є окремий блок індивідуальних графіків (Жашків/Умань…),
+     * беремо 1.2 з нього. Інакше — перший (загальнообласний) 1.2.
+     */
+    private fun extractQueueTimes(fullText: String): String? {
+        val preferredText = preferIndividualSection(fullText)
+        val matcher = queueLinePattern.matcher(preferredText)
+        if (!matcher.find()) {
+            // fallback: увесь текст
+            val fallback = queueLinePattern.matcher(fullText)
+            if (!fallback.find()) return null
+            return normalizeTimes(fallback.group(1))
+        }
+        return normalizeTimes(matcher.group(1))
+    }
+
+    private fun preferIndividualSection(fullText: String): String {
+        var cutAt = -1
+        for (p in individualSectionPatterns) {
+            val m = p.matcher(fullText)
+            if (m.find()) {
+                val start = m.start()
+                if (cutAt < 0 || start < cutAt) cutAt = start
+            }
+        }
+        if (cutAt > 0 && cutAt < fullText.length - 10) {
+            return fullText.substring(cutAt)
+        }
+        return fullText
+    }
+
+    private fun normalizeTimes(raw: String?): String? {
+        if (raw.isNullOrBlank()) return null
+        return raw
+            .replace('–', '-')
+            .replace('—', '-')
+            .replace(Regex("\\s+"), " ")
+            .trim()
+            .ifBlank { null }
+    }
+
     private fun parseHtml(html: String): List<ParsedSchedule> {
         val doc = Jsoup.parse(html)
         var messages = doc.select("div.tgme_widget_message")
@@ -87,16 +139,7 @@ object TelegramParser {
             val isSchedule = scheduleKeywords.any { fullText.contains(it, ignoreCase = true) }
             if (!isSchedule) continue
 
-            val matcher = queueLinePattern.matcher(fullText)
-            if (!matcher.find()) continue
-
-            val timesRaw = matcher.group(1)?.trim() ?: continue
-            val timesText = timesRaw
-                .replace('–', '-')
-                .replace('—', '-')
-                .replace(Regex("\\s+"), " ")
-                .trim()
-            if (timesText.isBlank()) continue
+            val timesText = extractQueueTimes(fullText) ?: continue
 
             var dateText = "невідома дата"
             for (p in datePatterns) {
